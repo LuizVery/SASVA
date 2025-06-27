@@ -1,0 +1,51 @@
+# Nome do Workflow
+name: Build and Deploy React App to GitHub Pages
+
+# Gatilho: Executa quando houver um push na branch 'master'
+on:
+  push:
+    branches: ["master"] # Se sua branch principal for 'main', troque 'master' por 'main'
+
+# Permissões necessárias para o workflow publicar no GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Define o que acontece quando o workflow roda
+jobs:
+  # Job de build: compila a aplicação
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18" # Usa a versão 18 do Node.js
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci # 'ci' é mais rápido e seguro para automação que 'install'
+
+      - name: Build application
+        run: npm run build # Este comando cria a pasta 'build' com o site pronto
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './build' # Informa onde estão os arquivos do site pronto
+
+  # Job de deploy: publica o que foi compilado
+  deploy:
+    needs: build # Este job só executa depois que o 'build' terminar
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
